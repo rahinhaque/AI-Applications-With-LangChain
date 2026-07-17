@@ -2,7 +2,7 @@
 // This runs alongside Vite during `npm run dev`
 import express from "express";
 import { toNodeHandler } from "better-auth/node";
-import { auth } from "./src/lib/auth.ts";
+import { auth } from "./src/lib/auth";
 
 const app = express();
 const PORT = 3001;
