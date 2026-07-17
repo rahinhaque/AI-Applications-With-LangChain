@@ -1,31 +1,29 @@
 import { useState, useRef, useEffect } from "react";
 import "./App.css";
+import { getAnswer } from "./langchain";
 
 function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef(null);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isLoading]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const trimmed = input.trim();
-    if (!trimmed) return;
+    if (!trimmed || isLoading) return;
 
     setMessages((prev) => [...prev, { role: "user", text: trimmed }]);
     setInput("");
+    setIsLoading(true);
 
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "agent",
-          text: "This is a placeholder reply from Rahin's Agent.",
-        },
-      ]);
-    }, 500);
+    const reply = await getAnswer(trimmed);
+
+    setMessages((prev) => [...prev, { role: "agent", text: reply }]);
+    setIsLoading(false);
   };
 
   const handleKeyDown = (e) => {
@@ -39,7 +37,6 @@ function App() {
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-[#07080f] text-slate-100">
-      {/* Ambient gradient blobs */}
       <style>{`
         @keyframes drift {
           0%, 100% { transform: translate(0, 0) scale(1); }
@@ -60,7 +57,6 @@ function App() {
         />
       </div>
 
-      {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
         {hasMessages && (
           <header className="border-b border-white/10 backdrop-blur-md py-4 px-6">
@@ -91,6 +87,7 @@ function App() {
                 setInput={setInput}
                 handleSend={handleSend}
                 handleKeyDown={handleKeyDown}
+                isLoading={isLoading}
               />
 
               <p className="text-xs text-slate-500 max-w-sm">
@@ -119,6 +116,17 @@ function App() {
                   </div>
                 </div>
               ))}
+
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="w-7 h-7 mr-2 shrink-0 rounded-full bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 shadow-[0_0_12px_rgba(168,85,247,0.6)]" />
+                  <div className="rounded-2xl px-4 py-2.5 bg-white/5 border border-white/10 backdrop-blur-md flex gap-1 items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.3s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.15s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" />
+                  </div>
+                </div>
+              )}
               <div ref={scrollRef} />
             </div>
           )}
@@ -132,6 +140,7 @@ function App() {
                 setInput={setInput}
                 handleSend={handleSend}
                 handleKeyDown={handleKeyDown}
+                isLoading={isLoading}
                 full
               />
               <p className="text-center text-xs text-slate-500 mt-2">
@@ -146,7 +155,14 @@ function App() {
   );
 }
 
-function InputBar({ input, setInput, handleSend, handleKeyDown, full }) {
+function InputBar({
+  input,
+  setInput,
+  handleSend,
+  handleKeyDown,
+  isLoading,
+  full,
+}) {
   return (
     <div
       className={`flex items-center gap-2 rounded-2xl px-4 py-3 bg-white/5 border border-white/10 backdrop-blur-md
@@ -159,11 +175,12 @@ function InputBar({ input, setInput, handleSend, handleKeyDown, full }) {
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Send a message..."
-        className="flex-1 bg-transparent outline-none text-slate-100 placeholder-slate-500 text-sm"
+        disabled={isLoading}
+        className="flex-1 bg-transparent outline-none text-slate-100 placeholder-slate-500 text-sm disabled:opacity-50"
       />
       <button
         onClick={handleSend}
-        disabled={!input.trim()}
+        disabled={!input.trim() || isLoading}
         className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-400 text-slate-950 disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors shrink-0"
       >
         <svg
